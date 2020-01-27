@@ -32,7 +32,7 @@
 #include <QUrl>
 #endif
 
-namespace URLProcessor{
+namespace Targoman{
 
 #define fastToLower(c)  ((c >= 'A' && c <= 'Z') ? c + 0x20 : c)
 #define fastToUpper(c)  ((c >= 'a' && c <= 'z') ? c - 0x20 : c)
@@ -835,9 +835,9 @@ void URLCanonicalizer::resetProcessorsToFactory()
     /*URLCanonicalizer::*/FactoryURLReversePreprocessor->copyTo(* /*URLCanonicalizer::*/URLReversePreprocessor);
 }
 
-stuURLProcessorsBackup URLCanonicalizer::backupProcessors()
+stuTargomansBackup URLCanonicalizer::backupProcessors()
 {
-    stuURLProcessorsBackup Return;
+    stuTargomansBackup Return;
     Return.init();
 
     /*URLCanonicalizer::*/URLForwardPreprocessor->copyTo(*Return.Forward);
@@ -845,7 +845,7 @@ stuURLProcessorsBackup URLCanonicalizer::backupProcessors()
     return Return;
 }
 
-void URLCanonicalizer::resetProcessorsToBackup(stuURLProcessorsBackup &_backup)
+void URLCanonicalizer::resetProcessorsToBackup(stuTargomansBackup &_backup)
 {
     _backup.Forward->copyTo(* /*URLCanonicalizer::*/URLForwardPreprocessor);
     _backup.Backward->copyTo(* /*URLCanonicalizer::*/URLReversePreprocessor);
@@ -914,7 +914,7 @@ bool intfURLConverter::updatePathPostNormalize(char *_domainPos, char *&_startOf
     (void)_domainPos;(void)_startOfPath; return false;
 }
 
-void stuURLProcessorsBackup::init()
+void stuTargomansBackup::init()
 {
 #ifdef CANONICALIZER_CORE_FAST
             assert(this->Forward == nullptr && this->Backward == nullptr);
@@ -926,7 +926,7 @@ void stuURLProcessorsBackup::init()
     this->Backward = new clsURLPreprocessor;
 }
 
-void stuURLProcessorsBackup::destroy()
+void stuTargomansBackup::destroy()
 {
     if (this->Forward && this->Backward){
         delete this->Forward;

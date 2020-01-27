@@ -23,7 +23,7 @@
 
 #include "URLCanonicalizer.h"
 
-namespace URLProcessor{
+namespace Targoman{
 
 #define DOMAIN_BASED_CONVERTER(_className, _key, _forward, _requiredRest, _stripDomain, _stripPath, _domain, _appendRest,_updateDomain,_lowerCasePath) \
 class _className : public intfURLConverter{ \

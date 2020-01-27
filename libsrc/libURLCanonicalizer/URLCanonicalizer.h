@@ -34,10 +34,84 @@
     #include <QException>
 #endif
 
-namespace URLProcessor {
+namespace Targoman {
 
 #define MAX_URL_SIZE 4096
 #define MIN_URL_SIZE 5
+
+class clsURLPreprocessor;
+struct stuTargomansBackup;
+ /**
+ * @brief The URLCanonicalizer class is a fast URL normalizer/canonicalizer which works in two modes. Static library is
+ * tuned to be ultra fast with minor checkings and it's supposed that url confirms with minor rules. Dynamic library
+ * will perform more investigation about URL validity and also will convert IDN to ACE(punycode). Take note that static
+ * Library will return nullptr on errors without reporting the cause. but dynamic library will throw errors reporting the
+ * cause.
+ */
+class URLCanonicalizer
+{
+public:
+  /**
+   * @brief doJob This method will normalize/canonicalize the URL based on the predefined rules. For example:
+   *
+   * hTTpS://user@www.eXample.Com:436/aa///KKLLLf../lkg%201%2%33%34%20jf/././sd/..//@aLgo.CoM////?/../#algo  ===>
+   * https://example.com/aa/KKLLLf.lkg 1%234 jf/@aLgo.CoM/?/../
+   *
+   * www.algo.sEx.Com:436/aa//bb/..//?/../#algo ===> http://www.algo.sex.com/aa/?/../
+   *
+   * Output URL can be larger than input URL so you must provide an storage greater than the input URL. Best
+   * choice is to provide input URL in a 4096 byte lenght array of characters
+   *
+   * Path normalization consist of many aspects:
+   * 1- Any character after '#' must be deleted
+   * 2- Any character after Query started must be not changed (excempt '#' and '%')
+   * 3- Any multislash pattern is normalized to single slash ("///a///" ===> "/a/")
+   * 4- "/./" will be normalized to "/"
+   * 5- "/../" will remove last directory ("/a/b/../c/" ==> "/a/c")
+   * 6- Combination of "%" close to two Hex digits will be normalized to the corresponding ASCII charcter
+   * representation of the hex digits combination. This will be done just for valid ASCII characters except space.
+   *
+   * @param _url Input URL which can be used also as output storage if \a _normalizedURL is set to nullptr. if you want to
+   * use this pointer as storage it must be of at least 4096 bytes.
+   * @param It will be used as storage. As noted in source URL this must also consist of at least 4096 bytes.
+   * @param _removeWWW If set to true first seen www and www1 to www9 will be removed (except for urls like www.com)
+   * @return A pointer to the normalized URL or nullptr in case of error
+   */
+    static const char* doJob (const char *_url, char* _normalizedURL, char*& _hostPos, char*& _pathPos, char* _baseHost, char *&_patternPos, bool _removeWWW = true);
+
+    static inline const char* doJob (const char *_url, char* _normalizedURL, bool _removeWWW = true){
+        char* PathPos;
+        char* HostPos;
+        char* PatternPos;
+        char  BaseHost[4096];
+        return URLCanonicalizer::doJob(_url, _normalizedURL, HostPos, PathPos, BaseHost, PatternPos, _removeWWW);
+    }
+
+    static inline const char* doJob (char *_url, bool _removeWWW = true){
+        return URLCanonicalizer::doJob(_url, _url,  _removeWWW);
+    }
+
+  /**
+   * @brief convertHexCodes This is a helper method which converts URL encoded strings to normal strings
+   * @param _url Input URL
+   * @param _convertAll If set to True all the URLEncodings will be converted else just special ASCII encodings
+   * @return a pointer to source URL which has been decoded
+   */
+  static const char* convertHexCodes(char* _url, bool _convertAll);
+
+  static void setFactoryProcessors();
+  static void resetProcessorsToFactory();
+
+  static stuTargomansBackup backupProcessors();
+  static void resetProcessorsToBackup(stuTargomansBackup &_backup);
+
+/*  static clsURLPreprocessor* URLForwardPreprocessor __attribute__((used));
+  static clsURLPreprocessor* URLReversePreprocessor __attribute__((used));
+
+  static clsURLPreprocessor* FactoryURLForwardPreprocessor __attribute__((used));
+  static clsURLPreprocessor* FactoryURLReversePreprocessor __attribute__((used));*/
+  static void init();
+};
 
 #ifndef CANONICALIZER_CORE_FAST
 class exURLCanonicalizer : public QException {
@@ -143,10 +217,10 @@ public:
     inline bool lowerCasePath() { return this->Flags & LowerCasePath;   }
 
     inline void setStripDomain(bool _status)   { this->Flags = _status ? (this->Flags | StripDomainBit)  : (this->Flags & ~StripDomainBit); }
-    inline void setStripPath(bool _status)     { this->Flags = _status ? (this->Flags | StripPathBit)  : (this->Flags & ~StripPathBit); }
-    inline void setAppendRest(bool _status)    { this->Flags = _status ? (this->Flags | AppendRestBit)  : (this->Flags & ~AppendRestBit); }
-    inline void setUseFillDomain(bool _status) { this->Flags = _status ? (this->Flags | UpdateDomainBit)  : (this->Flags & ~UpdateDomainBit); }
-    inline void setLowerCasePath(bool _status) { this->Flags = _status ? (this->Flags | LowerCasePath)  : (this->Flags & ~LowerCasePath); }
+    inline void setStripPath(bool _status)     { this->Flags = _status ? (this->Flags | StripPathBit)    : (this->Flags & ~StripPathBit); }
+    inline void setAppendRest(bool _status)    { this->Flags = _status ? (this->Flags | AppendRestBit)   : (this->Flags & ~AppendRestBit); }
+    inline void setUseFillDomain(bool _status) { this->Flags = _status ? (this->Flags | UpdateDomainBit) : (this->Flags & ~UpdateDomainBit); }
+    inline void setLowerCasePath(bool _status) { this->Flags = _status ? (this->Flags | LowerCasePath)   : (this->Flags & ~LowerCasePath); }
 
 private:
     char        Flags;
@@ -154,87 +228,12 @@ private:
     std::vector<std::string> RequiredRest;
 };
 
-class clsURLPreprocessor;
-
-struct stuURLProcessorsBackup{
+struct stuTargomansBackup{
     clsURLPreprocessor* Forward;
     clsURLPreprocessor* Backward;
-    stuURLProcessorsBackup():Forward(nullptr),Backward(nullptr){}
+    stuTargomansBackup():Forward(nullptr),Backward(nullptr){}
     void init();
     void destroy();
-};
-
- /**
- * @brief The URLCanonicalizer class is a fast URL normalizer/canonicalizer which works in two modes. Static library is
- * tuned to be ultra fast with minor checkings and it's supposed that url confirms with minor rules. Dynamic library
- * will perform more investigation about URL validity and also will convert IDN to ACE(punycode). Take note that static
- * Library will return nullptr on errors without reporting the cause. but dynamic library will throw errors reporting the
- * cause.
- */
-class URLCanonicalizer
-{
-public:
-  /**
-   * @brief doJob This method will normalize/canonicalize the URL based on the predefined rules. For example:
-   *
-   * hTTpS://user@www.sEx.Com:436/aa///KKLLLf../lkg%201%2%33%34%20jf/././sd/..//@aLgo.CoM////?/../#algo  ===>
-   * https://sex.com/aa/KKLLLf.lkg 1%234 jf/@aLgo.CoM/?/../
-   *
-   * www.algo.sEx.Com:436/aa//bb/..//?/../#algo ===> http://www.algo.sex.com/aa/?/../
-   *
-   * Output URL can be larger than input URL so you must provide an storage greater than the input URL. Best
-   * choice is to provide input URL in a 4096 byte lenght array of characters
-   *
-   * Path normalization consist of many aspects:
-   * 1- Any character after '#' must be deleted
-   * 2- Any character after Query started must be not changed (excempt '#' and '%')
-   * 3- Any multislash pattern is normalized to single slash ("///a///" ===> "/a/")
-   * 4- "/./" will be normalized to "/"
-   * 5- "/../" will remove last directory ("/a/b/../c/" ==> "/a/c")
-   * 6- Combination of "%" close to two Hex digits will be normalized to the corresponding ASCII charcter
-   * representation of the hex digits combination. This will be done just for valid ASCII characters except space.
-   *
-   * @param _url Input URL which can be used also as output storage if \a _normalizedURL is set to nullptr. if you want to
-   * use this pointer as storage it must be of at least 4096 bytes.
-   * @param It will be used as storage. As noted in source URL this must also consist of at least 4096 bytes.
-   * @param _removeWWW If set to true first seen www and www1 to www9 will be removed (except for urls like www.com)
-   * @return A pointer to the normalized URL or nullptr in case of error
-   */
-    static const char* doJob (const char *_url, char* _normalizedURL, char*& _hostPos, char*& _pathPos, char* _baseHost, char *&_patternPos, bool _removeWWW = true);
-
-    static inline const char* doJob (const char *_url, char* _normalizedURL, bool _removeWWW = true){
-        char* PathPos;
-        char* HostPos;
-        char* PatternPos;
-        char  BaseHost[4096];
-        return URLCanonicalizer::doJob(_url, _normalizedURL, HostPos, PathPos, BaseHost, PatternPos, _removeWWW);
-    }
-
-    static inline const char* doJob (char *_url, bool _removeWWW = true){
-        return URLCanonicalizer::doJob(_url, _url,  _removeWWW);
-    }
-
-
-  /**
-   * @brief convertHexCodes This is a helper method which converts URL encoded strings to normal strings
-   * @param _url Input URL
-   * @param _convertAll If set to True all the URLEncodings will be converted else just special ASCII encodings
-   * @return a pointer to source URL which has been decoded
-   */
-  static const char* convertHexCodes(char* _url, bool _convertAll);
-
-  static void setFactoryProcessors();
-  static void resetProcessorsToFactory();
-
-  static stuURLProcessorsBackup backupProcessors();
-  static void resetProcessorsToBackup(stuURLProcessorsBackup &_backup);
-
-/*  static clsURLPreprocessor* URLForwardPreprocessor __attribute__((used));
-  static clsURLPreprocessor* URLReversePreprocessor __attribute__((used));
-
-  static clsURLPreprocessor* FactoryURLForwardPreprocessor __attribute__((used));
-  static clsURLPreprocessor* FactoryURLReversePreprocessor __attribute__((used));*/
-  static void init();
 };
 
 }

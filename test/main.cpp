@@ -27,7 +27,7 @@
 
 #include <QFile>
 #include "libURLCanonicalizer/URLCanonicalizer.h"
-using namespace URLProcessor;
+using namespace Targoman;
 
 #include <QUrl>
 

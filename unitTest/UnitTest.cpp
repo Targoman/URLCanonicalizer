@@ -24,7 +24,7 @@
 #include "UnitTest.h"
 #include <unistd.h>
 #include "libURLCanonicalizer/URLCanonicalizer.h"
-using namespace URLProcessor;
+using namespace Targoman;
 
 void UnitTest::checkCanonicalizerValidity_data()
 {
