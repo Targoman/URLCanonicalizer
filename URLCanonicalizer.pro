@@ -18,5 +18,3 @@ OTHER_FILES += \
     INSTALL \
     LICENSE \
 
-
-
